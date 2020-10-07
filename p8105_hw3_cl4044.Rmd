@@ -107,4 +107,19 @@ This dataset has `r nrow(accel_df)` observations. The dataset contains 6 variabl
 
 `weekend`: a logical variable indicates whether the day is a day of observation is a weekend.
 
+create a table showing the aggregation accross minutes to create a total activity variable for each day
+```{r}
+table_df =
+  accel_df %>% 
+  group_by(week, day) %>% 
+  summarize(day_activity_sum = sum(activity_count)) %>%
+  pivot_wider(
+      id_cols = "week",
+      names_from = "day",
+      values_from = "day_activity_sum"
+    ) %>%
+  select(week, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) %>%
+  knitr::kable(caption = "Aggregated activity counts by day and week")
+table_df
+```
 
