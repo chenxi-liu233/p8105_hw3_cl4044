@@ -1,0 +1,110 @@
+---
+title: "p8105_hw3_cl4044"
+author: "Chenxi Liu"
+date: "10/6/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+knitr::opts_chunk$set(
+	fig.width = 6, 
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+## Problem 1
+```{r}
+data("instacart")
+```
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns. 
+
+Observations are the level of items in orders by user. There are user / order variables -- user ID, order ID, order day, and order hour. There are also item variables -- name, aisle, department, and some numeric codes. 
+
+How many aisles, and which are most items from?
+
+There are  `r nlevels(pull(instacart,aisle))` aisles. Fresh Vegetables are the most items from.
+```{r}
+instacart %>% 
+	count(aisle) %>% 
+	filter(n > 10000) %>% 
+	mutate(
+		aisle = factor(aisle),
+		aisle = fct_reorder(aisle, n)
+	) %>% 
+	ggplot(aes(x = aisle, y = n)) + 
+	geom_point() + 
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+Let's make a table!!
+
+```{r}
+instacart %>% 
+	filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+	group_by(aisle) %>% 
+	count(product_name) %>% 
+	mutate(rank = min_rank(desc(n))) %>% 
+	filter(rank < 4) %>% 
+	arrange(aisle, rank) %>% 
+	knitr::kable()
+```
+
+
+Apples vs ice cream..
+
+```{r}
+instacart %>% 
+	filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+	group_by(product_name, order_dow) %>% 
+	summarize(mean_hour = mean(order_hour_of_day)) %>% 
+	pivot_wider(
+		names_from = order_dow,
+		values_from = mean_hour
+	)
+```
+
+## Problem 2
+
+Load, tidy, and wrangle the data.
+```{r}
+accel_df = read_csv("./data/accel_data.csv") %>%
+  janitor::clean_names() %>%
+  pivot_longer(cols = starts_with("activity"), 
+               names_to = "minute", 
+               names_prefix = "activity_", 
+               values_to = "activity_count"
+               ) %>%
+  mutate(weekend = if_else(day %in% c("Saturday", "Sunday"), TRUE, FALSE)) %>%
+  mutate(day = as.factor(day),
+         minute = as.numeric(minute),
+         week = as.integer(week),
+         day_id = as.integer(day_id)
+         )
+accel_df
+  
+```
+
+This dataset has `r nrow(accel_df)` observations. The dataset contains 6 variables:
+
+`week`: the week of the obeservation, a integer variable ranging from  `r min(accel_df$week)`- `r max(accel_df$week)`. 
+
+`day_id`: the unique id of the day of the observation, a integer varible ranging from `r min(accel_df$day_id)` to `r max(accel_df$day_id)`
+
+`day`: the name of the day of the week, a factor variable from Monday to Sunday.
+
+`activity_count`: per-minute activity counts, a double variable ranging from `r min(accel_df$activity_count)` to `r max(accel_df$activity_count)`. 
+
+`weekend`: a logical variable indicates whether the day is a day of observation is a weekend.
+
+
