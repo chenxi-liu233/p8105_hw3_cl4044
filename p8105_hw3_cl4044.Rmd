@@ -145,6 +145,53 @@ accel_df %>%
   )
 ```
 
-From the graph above, I observed that this person usually sleep from 23PM to 5AM everyday because the activity counts during these hours are relatively low. 
+From the graph above, I observed that this person usually sleep from 23PM to 5AM everyday because the activity counts during these hours are relatively low. This person also usually has the highest activity count on Friday nights. 
+
+## Problem 3
+```{r}
+data("ny_noaa")
+ny_df = ny_noaa %>%
+  separate(date, into = c("year","month","day"),sep = "-") %>% 
+  mutate(
+    year = as.integer(year),
+    month = as.integer(month),
+    month = (month.name[month]),
+    day = as.integer(day),
+    prcp = prcp / 10,
+    tmax = as.numeric(tmax),
+    tmin = as.numeric(tmin),
+    tmax = tmax / 10,
+    tmin = tmin / 10
+  ) 
+ny_df %>%
+  group_by(snow) %>%
+  drop_na(snow) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+```
+For snowfall, the top five most commonly observed snowfall values are 0, 25, 13, 51 and 76. 
+
+```{r}
+ny_df %>%
+  filter(month == c("January", "July")) %>%
+  group_by(id, year, month) %>%
+  summarize(mean_max = mean(tmax, na.rm = TRUE)) %>%
+  ggplot(aes(x = year, y = mean_max)) +
+  geom_point(aes(color = id, alpha = 0.01))+ 
+  facet_grid(.~month)
+```
+The average maximum temperature is much higher in July than that of in January. The temprature range is also 
+
+
+```{r}
+ny_df %>%
+  pivot_longer(tmax:tmin, 
+               names_to = "max_min",
+               values_to = "temp") %>%
+  ggplot(aes(x = year, y = temp, fill = max_min)) +
+  geom_boxplot() +
+  facet_grid(.~max_min)
+```
+
 
 
