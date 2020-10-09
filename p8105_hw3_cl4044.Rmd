@@ -166,10 +166,14 @@ ny_df = ny_noaa %>%
     tmin = tmin / 10
   ) 
 ny_df %>%
-  group_by(snow) %>%
+  group_by(snow) %>% 
   drop_na(snow) %>%
-  summarize(count = n()) %>%
-  arrange(desc(count))
+  count(snow) %>% 
+  ungroup() %>% 
+  mutate(rank = min_rank(desc(n))) %>% 
+  filter(rank < 6) %>% 
+  arrange(rank) %>% 
+  knitr::kable(align = "ccc")
 ```
 For snowfall, the top five most commonly observed snowfall values are 0, 25, 13, 51 and 76. Since there is no snow most of days in a year, 0 should be the most commonly observed snowfall value. 
 
