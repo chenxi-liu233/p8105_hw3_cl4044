@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(patchwork)
 library(p8105.datasets)
 knitr::opts_chunk$set(
 	fig.width = 6, 
@@ -96,15 +97,15 @@ accel_df
 ```
 
 This dataset has `r nrow(accel_df)` observations. The dataset contains 6 variables:
-
-`week`: the week of the obeservation, a integer variable ranging from  `r min(accel_df$week)`- `r max(accel_df$week)`. 
-
+\
+`week`: the week of the obeservation, a integer variable ranging from  `r min(accel_df$week)` to `r max(accel_df$week)`. 
+\
 `day_id`: the unique id of the day of the observation, a integer varible ranging from `r min(accel_df$day_id)` to `r max(accel_df$day_id)`
-
+\
 `day`: the name of the day of the week, a factor variable from Monday to Sunday.
-
+\
 `activity_count`: per-minute activity counts, a double variable ranging from `r min(accel_df$activity_count)` to `r max(accel_df$activity_count)`. 
-
+\
 `weekend`: a logical variable indicates whether the day is a day of observation is a weekend.
 
 create a table showing the aggregation accross minutes to create a total activity variable for each day
@@ -157,6 +158,7 @@ ny_df = ny_noaa %>%
     month = as.integer(month),
     month = (month.name[month]),
     day = as.integer(day),
+    prcp = as.double(prcp),
     prcp = prcp / 10,
     tmax = as.numeric(tmax),
     tmin = as.numeric(tmin),
@@ -169,7 +171,7 @@ ny_df %>%
   summarize(count = n()) %>%
   arrange(desc(count))
 ```
-For snowfall, the top five most commonly observed snowfall values are 0, 25, 13, 51 and 76. 
+For snowfall, the top five most commonly observed snowfall values are 0, 25, 13, 51 and 76. Since there is no snow most of days in a year, 0 should be the most commonly observed snowfall value. 
 
 ```{r}
 ny_df %>%
@@ -183,25 +185,79 @@ ny_df %>%
     y = "Tempreture (°C)", 
     x = "Year",
     caption = "Data from ny_noaa package") +
-  scale_x_continuous(breaks = c(1981, 1985, 1990, 1995, 2000, 2005, 2010),
-                  labels = c("1981", "1985", "1990", "1995", "2000", "2005", "2010")) +
-  scale_y_continuous(breaks = c(-10, 0, 10, 20, 30),
-                     labels = c("-10°C", "0°C", "10°C", "20°C", "30°C")) + theme(legend.position = "none") +
+  theme(legend.position = "none") +
   facet_grid(.~month)
 ```
 
-The average maximum temperature is much higher in July than that of in January. The temprature range is also 
+Most of the station's average max temperature are between -10°C and 10°C in January; between 20°C and 35°C in July. The temperatures in January varies more than that in July. There are also a few outliers observed. 
 
 
-```{r}
-ny_df %>%
-  pivot_longer(tmax:tmin, 
-               names_to = "max_min",
-               values_to = "temp") %>%
-  ggplot(aes(x = year, y = temp, fill = max_min)) +
-  geom_boxplot() +
-  facet_grid(.~max_min)
+```{r, fig.width=6,fig.height=8}
+tmax_tmin_plot =
+  ny_df %>%
+  ggplot(aes(x = tmax, y = tmin)) +
+  geom_hex() +
+    labs(
+    title = "Max vs. Min Temperatures in NY",
+    x = "Max Temperature (°C)",
+    y = "Min Temperature (°C)",
+    caption = "Data from ny_noaa package"
+  ) +
+  theme(legend.position = "right")
 ```
 
+```{r}
+snowfall_plot = 
+  ny_df %>%
+  drop_na() %>% 
+  filter(snow > 0 & snow < 100) %>%
+  ggplot(aes(x = year, y = snow, group = year, fill = year)) +
+  geom_violin() +
+  stat_summary(mult=1, geom="pointrange", size = 0.1, color="red")
+    labs(
+    title = "Distribution of Snowfall(mm)",
+    x = "Year",
+    y = "Snowfall (mm)",
+    caption = "Data from ny_noaa package"
+  ) +
+  scale_x_continuous(
+    breaks = c(seq(1980, 2010, by = 5))
+  ) +
+  theme(legend.position = "none")
+```
 
+Two-panel plot using patchwork
+```{r, fig.width=7,fig.height=14}
+tmax_tmin_plot + snowfall_plot
+```
 
+In the Max vs. Min Temperatures in NY plot, the observations are mostly clustered on two spot, the (28, 14) and (10,0) cluster. Most of observations are found in the greenish hexes, all the purple hexes means the number observation is small (<10000). In the Snowfall Distribution plot, we can observe that the snowfall distributions across years looks similar to each other. So the snowfall each year is pretty consistent with an averafe of snowfall around 30mm. 
+
+The `ny_df` dataset has `r nrow(ny_df)` rows and `r ncol(ny_df)` columns. After tidying the original dataset, the `ny_df` dataframe contains `9` variables: 
+\
+`id`: Weather station ID, a character variable. 
+\
+`year`: Year of observation, an integer variable, ranging from `r min(ny_df$year)` to `r max(ny_df$year)`.
+\
+`month`: The month of observation, a character variable. 
+\
+`day`: The day of observation, an integer variable, ranging from `r min(ny_df$day)` to `r max(ny_df$day)`.
+\
+`prcp`: Precipitation (mm), a double variable, ranging from `r min(ny_df$prcp, na.rm = TRUE)` to `r max(ny_df$prcp, na.rm = TRUE)`.
+\
+`snow`: Snowfall (mm), an integer variable, ranging from `r min(ny_df$snow, na.rm = TRUE)` to `r max(ny_df$snow, na.rm = TRUE)`.
+\
+`snwd`: Snow depth (mm), an integer variable, ranging from `r min(ny_df$snwd, na.rm = TRUE)` to `r max(ny_df$snwd, na.rm = TRUE)`.
+\
+`tmax`: Maximum temperature (C), a double variable, ranging from `r min(ny_df$tmax, na.rm = TRUE)` to `r max(ny_df$tmax, na.rm = TRUE)`.
+\
+`tmin`: Minimum temperature (C),  a double variable, ranging from `r min(ny_df$tmin, na.rm = TRUE)` to `r max(ny_df$tmin, na.rm = TRUE)`.
+
+There is `r sum(is.na(ny_df))` counts of null value in `ny_df`. 
+\
+The total null values in each columns:
+```{r}
+colSums(is.na(ny_df))
+```
+
+Since our data frame is so large(`r nrow(ny_df)` X `r ncol(ny_df)`), the `r sum(is.na(ny_df))` counts of null value  does not matter very much. Our plots ignored these null values anyway. 
